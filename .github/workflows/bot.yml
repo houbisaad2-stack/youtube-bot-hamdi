@@ -16,4 +16,4 @@ jobs:
       - name: Create credentials.json
         run: python setup_credentials.py
       - name: Run bot
-        run: run: python all_in_one.py
+        run: python all_in_one.py
