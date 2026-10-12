@@ -1,4 +1,4 @@
-name: YouTube Bot Auto
+name : YouTube Bot Auto
 on:
   workflow_dispatch:
   schedule:
