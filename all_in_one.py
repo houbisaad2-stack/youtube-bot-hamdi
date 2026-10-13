@@ -1,23 +1,13 @@
-name: YouTube Bot Auto
-on:
-  workflow_dispatch:
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Install dependencies
-        run: pip install google-api-python-client pillow moviepy gtts
-      - name: Create credentials
-        run: python setup_credentials.py
-        env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-      - name: Run bot
-        run: python all_in_one.py
+print("🤖 Bot Hamdi Starting...")
+from PIL import Image, ImageDraw
+import subprocess, os
+W, H = 1280, 720
+img = Image.new('RGB', (W, H), (255, 50, 50))
+draw = ImageDraw.Draw(img)
+draw.text((100, 300), "YouTube Bot Hamdi - Test Video", fill=(255,255,255))
+img.save("frame.png")
+print("✅ frame.png created")
+cmd = ["ffmpeg", "-y", "-loop", "1", "-i", "frame.png", "-t", "5", "-pix_fmt", "yuv420p", "short.mp4"]
+subprocess.run(cmd)
+print(f"✅ short.mp4 created: {os.path.getsize('short.mp4')} bytes")
+print("🎉 SUCCESS - Run is GREEN!")
