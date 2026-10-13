@@ -1,48 +1,35 @@
-import os, time, random
-from datetime import datetime
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+name: YouTube Bot Auto
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *' # كل يوم 6 صباحا UTC = 7 صباحا تونس
 
-def authenticate():
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-        open("token.json","w").write(creds.to_json())
-    return build("youtube","v3",credentials=creds)
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-def generate_video_ideas(niche="عام"):
-    topics = ["قصة نجاح تونسية","وصفة تونسية","معلومة غريبة","تحدي 24 ساعة","نصائح للربح من الانترنت"]
-    for i in range(10):
-        print(f"{i+1}. {random.choice(topics)} | {niche}")
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-def growth_checklist():
-    print("📈 خطة زيادة المتابعين:\n1. عنوان جذاب\n2. thumbnail اصفر\n3. رد على الكومنتارات\n4. Shorts كل يوم\n5. نشر 19:00-22:00")
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-def main():
-    print("🚀 سوبر بوت يوتيوب - حميد")
-    print("1. افكار فيديوهات\n2. خطة زيادة متابعين\n3. رفع فيديوهات")
-    youtube = None
-    while True:
-        c = input("اختر: ").strip()
-        if c=="1":
-            niche=input("المجال؟ ") or "عام"
-            generate_video_ideas(niche)
-        elif c=="2":
-            growth_checklist()
-        elif c=="3":
-            if not youtube: youtube=authenticate()
-            print("حط فيديوهات في videos_to_upload/")
-        elif c=="0": break
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib gtts moviepy==1.0.3 Pillow requests
 
-if __name__=="__main__": main()
+      - name: Create credentials
+        run: python setup_credentials.py
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+      - name: Run bot
+        run: python all_in_one.py
