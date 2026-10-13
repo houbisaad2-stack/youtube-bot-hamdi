@@ -1,5 +1,35 @@
-import base64, json
-B64_DATA = "[STRIPPED 552 bytes]"
-with open("credentials.json", "w") as f:
-    f.write(base64.b64decode(B64_DATA).decode())
-print("credentials.json created")
+
+name: YouTube Bot Auto
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *' # كل يوم 6 صباحا UTC = 7 صباحا تونس
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib gtts moviepy==1.0.3 Pillow requests
+
+      - name: Create credentials
+        run: python setup_credentials.py
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+      - name: Run bot
+        run: python all_in_one.py
