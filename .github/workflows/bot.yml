@@ -1,33 +1,37 @@
+
 name: YouTube Bot Auto
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 18 * * *'
+    - cron: "0 18 * * *"
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
       - name: Install
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          pip install google-api-python-client google-auth-oauthlib google-auth Pillow
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth google-auth-httplib2
+
       - name: Credentials
         env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python setup_credentials.py
+          YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+        run: python -c "import os; assert os.environ.get('YOUTUBE_CLIENT_JSON') and os.environ.get('YOUTUBE_TOKEN_JSON'), 'Missing GitHub Secrets'"
+
       - name: Generate
-        run: python bot.py
-      - name: Upload
         env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python upload.py
+          YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+        run: python bot.py
