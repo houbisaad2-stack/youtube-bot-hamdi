@@ -1,27 +1,36 @@
-name: YouTube Bot Auto
-on:
-  workflow_dispatch:
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          pip install google-api-python-client google-auth google-auth-oauthlib Pillow
-      - name: Credentials
-        run: |
-          echo '${{ secrets.YOUTUBE_CLIENT_JSON }}' > client.json
-          echo '${{ secrets.YOUTUBE_TOKEN_JSON }}' > token.json
-      - name: Generate
-        run: python bot.py
-        env:
-          YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
-          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+import os
+import json
+from pathlib import Path
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+
+SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+TOKEN_FILE = Path("token.json")
+
+def get_authenticated_service():
+    token_data = None
+    env_token = os.getenv("YOUTUBE_TOKEN_JSON")
+    if env_token:
+        print("✅ Token from GitHub Secrets")
+        token_data = json.loads(env_token)
+        TOKEN_FILE.write_text(json.dumps(token_data))
+    elif TOKEN_FILE.exists():
+        print("✅ Token from token.json")
+        token_data = json.loads(TOKEN_FILE.read_text())
+    else:
+        raise FileNotFoundError("❌ لا يوجد token.json ولا YOUTUBE_TOKEN_JSON في Secrets")
+    creds = Credentials.from_authorized_user_info(token_data, SCOPES)
+    if creds.expired and creds.refresh_token:
+        print("🔄 Refreshing token...")
+        creds.refresh(Request())
+        new_token = {
+            "token": creds.token,
+            "refresh_token": creds.refresh_token,
+            "token_uri": creds.token_uri,
+            "client_id": creds.client_id,
+            "client_secret": creds.client_secret,
+            "scopes": creds.scopes
+        }
+        TOKEN_FILE.write_text(json.dumps(new_token, indent=2))
+        print("✅ Token refreshed")
+    return creds
