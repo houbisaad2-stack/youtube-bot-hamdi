@@ -1,31 +1,32 @@
-import os, json
-
-cid = os.getenv("YOUTUBE_CLIENT_ID") or "dummy_id"
-csec = os.getenv("YOUTUBE_CLIENT_SECRET") or "dummy_secret"
-rtok = os.getenv("YOUTUBE_REFRESH_TOKEN") or "dummy_refresh"
-
-is_dummy = "dummy" in cid
-
-with open("credentials.json", "w") as f:
-    json.dump({
-        "installed": {
-            "client_id": cid,
-            "client_secret": csec,
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "redirect_uris": ["http://localhost"]
-        }
-    }, f)
-
-with open("token.json", "w") as f:
-    json.dump({
-        "token": "dummy",
-        "refresh_token": rtok,
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "client_id": cid,
-        "client_secret": csec,
-        "scopes": ["https://www.googleapis.com/auth/youtube.force-ssl"],
-        "expiry": "2020-01-01T00:00:00Z"
-    }, f)
-
-print(f"CREDENTIALS OK - dummy={is_dummy}")
+name: YouTube Bot Auto
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 10 * * *'
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run bot
+        env:
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+        run: python bot.py
+      - name: Save log
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@github.com"
+          git add uploaded.json || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "uploaded log [skip ci]" && git push)
