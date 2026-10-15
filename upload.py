@@ -1,6 +1,0 @@
-
-token.json
-__pycache__/
-*.pyc
-.env
-.vscode/
