@@ -1,12 +1,12 @@
 import os
 import random
-import glob
 from gtts import gTTS
+from moviepy.editor import TextClip, ColorClip, CompositeVideoClip, AudioFileClip
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-# 1. قائمة أفكار ونكات تونسية مضحكة بالدارجة
+# 1. قائمة النكات والاسكتشات التونسية المضحكة بالدارجة
 TUNISIAN_JOKES = [
     "واحد ماشي يلوج على الخدمة، قالو المسؤول: اش تعرف تعمل؟ قالو: نعرف ننبر ونشجع من بعيد! قالو: مقبول طول مدير عام!",
     "واحد تونسي مشى يخطب، بو البنية قالو: وليدي البنت ما تعرفش تطيب! قالو التونسي: موش مشكل، توا نتعلموا مع بعضنا نطيبو ماكلة الحوت!",
@@ -23,6 +23,35 @@ def create_audio(text, output_path="joke.mp3"):
     tts.save(output_path)
     print(f"تم إنشاء الصوت بنجاح: {output_path}")
     return output_path
+
+def create_auto_video(audio_path, text, output_video_path="final_video.mp4"):
+    print("جاري إنشاء الفيديو تلقائياً بواسطة MoviePy...")
+    
+    # تحميل الصوت لمعرفة المدة الزمانية
+    audio_clip = AudioFileClip(audio_path)
+    duration = audio_clip.duration + 1.0  # إضافة ثانية إضافية للنهاية
+    
+    # إنشاء خلفية ملونة قياس Shorts (1080x1920)
+    bg_color = random.choice([(20, 20, 40), (40, 10, 30), (10, 40, 30), (30, 30, 60)])
+    background = ColorClip(size=(1080, 1920), color=bg_color, duration=duration)
+    
+    # إنشاء مقطع نصي (النكتة) على الشاشة
+    # ملاحظة: إذا ظهر أي خطأ في الخطوط، سنستخدم خلفية ملونة بسيطة مقاس Shorts
+    try:
+        txt_clip = TextClip(text, fontsize=50, color='white', size=(900, None), method='caption')
+        txt_clip = txt_clip.set_position('center').set_duration(duration)
+        video = CompositeVideoClip([background, txt_clip])
+    except Exception as e:
+        print(f"تنبيه حول محرر النصوص (Font/TextClip): {e}")
+        video = background
+
+    # إدماج الصوت في الفيديو
+    video = video.set_audio(audio_clip)
+    
+    # حفظ الفيديو بصيغة mp4
+    video.write_videofile(output_video_path, fps=24, codec='libx264', audio_codec='aac')
+    print(f"🎉 تم إنشاء الفيديو بنجاح: {output_video_path}")
+    return output_video_path
 
 def upload_to_youtube(video_path, title):
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
@@ -46,9 +75,9 @@ def upload_to_youtube(video_path, title):
     body = {
         "snippet": {
             "title": title[:90] + " #shorts #تونس #ضحك",
-            "description": "فيديو كوميدي تونسي مضحك بالدارجة التونسية! أشترك في القناة للمزيد من الضحك.",
+            "description": "فيديو كوميدي تونسي مضحك بالدارجة التونسية! اشترك في القناة للمزيد من الضحك.",
             "tags": ["تونس", "ضحك", "كوميديا", "Shorts", "تونسية"],
-            "categoryId": "23"  # تصنيف Comedy
+            "categoryId": "23"  # Comedy
         },
         "status": {
             "privacyStatus": "public"
@@ -62,22 +91,18 @@ def upload_to_youtube(video_path, title):
         media_body=media
     )
     response = request.execute()
-    print(f"🎉 تم رفع الفيديو بنجاح إلى يوتيوب! الرابط: https://youtu.be/{response['id']}")
+    print(f"🚀 تم رفع الفيديو بنجاح إلى يوتيوب! الرابط: https://youtu.be/{response['id']}")
 
 if __name__ == "__main__":
-    print("--- بداية تشغيل البوت الكوميدي التونسي ---")
+    print("--- بداية تشغيل البوت الكوميدي التونسي الآلي ---")
     joke_text = generate_joke()
     print(f"النكتة المحددة: {joke_text}")
     
-    # تحويل النص لصوت
+    # 1. تحويل النص لصوت
     audio_file = create_audio(joke_text)
     
-    # البحث عن فيديو موجود داخل المجلد أو استخدام فيديو افتراضي
-    video_files = glob.glob("videos/*.mp4") + glob.glob("*.mp4")
+    # 2. إنشاء فيديو خلفية تلقائياً ودمج الصوت
+    final_video = create_auto_video(audio_file, joke_text)
     
-    if video_files:
-        video_to_upload = video_files[0]
-        print(f"سيتم رفع الفيديو: {video_to_upload}")
-        upload_to_youtube(video_to_upload, joke_text)
-    else:
-        print("تنبيه: لم يتم العثور على ملفات MP4 جاهزة في المجلد. يرجى إضافة فيديو خلفية داخل مجلد videos/")
+    # 3. الرفع التلقائي ليوتيوب
+    upload_to_youtube(final_video, joke_text)
