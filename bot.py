@@ -1,7 +1,8 @@
 import os
 import random
 from gtts import gTTS
-from moviepy.editor import TextClip, ColorClip, CompositeVideoClip, AudioFileClip
+# استدعاء مباشر من moviepy ليتوافق مع الإصدارات الجديدة والقديمة
+from moviepy import ColorClip, AudioFileClip
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -24,29 +25,19 @@ def create_audio(text, output_path="joke.mp3"):
     print(f"تم إنشاء الصوت بنجاح: {output_path}")
     return output_path
 
-def create_auto_video(audio_path, text, output_video_path="final_video.mp4"):
+def create_auto_video(audio_path, output_video_path="final_video.mp4"):
     print("جاري إنشاء الفيديو تلقائياً بواسطة MoviePy...")
     
     # تحميل الصوت لمعرفة المدة الزمانية
     audio_clip = AudioFileClip(audio_path)
-    duration = audio_clip.duration + 1.0  # إضافة ثانية إضافية للنهاية
+    duration = audio_clip.duration + 1.0  # إضافة ثانية إضافية
     
     # إنشاء خلفية ملونة قياس Shorts (1080x1920)
     bg_color = random.choice([(20, 20, 40), (40, 10, 30), (10, 40, 30), (30, 30, 60)])
-    background = ColorClip(size=(1080, 1920), color=bg_color, duration=duration)
+    video = ColorClip(size=(1080, 1920), color=bg_color, duration=duration)
     
-    # إنشاء مقطع نصي (النكتة) على الشاشة
-    # ملاحظة: إذا ظهر أي خطأ في الخطوط، سنستخدم خلفية ملونة بسيطة مقاس Shorts
-    try:
-        txt_clip = TextClip(text, fontsize=50, color='white', size=(900, None), method='caption')
-        txt_clip = txt_clip.set_position('center').set_duration(duration)
-        video = CompositeVideoClip([background, txt_clip])
-    except Exception as e:
-        print(f"تنبيه حول محرر النصوص (Font/TextClip): {e}")
-        video = background
-
     # إدماج الصوت في الفيديو
-    video = video.set_audio(audio_clip)
+    video = video.with_audio(audio_clip) if hasattr(video, 'with_audio') else video.set_audio(audio_clip)
     
     # حفظ الفيديو بصيغة mp4
     video.write_videofile(output_video_path, fps=24, codec='libx264', audio_codec='aac')
@@ -102,7 +93,7 @@ if __name__ == "__main__":
     audio_file = create_audio(joke_text)
     
     # 2. إنشاء فيديو خلفية تلقائياً ودمج الصوت
-    final_video = create_auto_video(audio_file, joke_text)
+    final_video = create_auto_video(audio_file)
     
     # 3. الرفع التلقائي ليوتيوب
     upload_to_youtube(final_video, joke_text)
