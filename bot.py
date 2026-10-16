@@ -25,25 +25,36 @@ def create_audio(text, output_path="joke.mp3"):
     return output_path
 
 def create_auto_video(audio_path, output_video_path="final_video.mp4"):
-    print("جاري إنشاء الفيديو تلقائياً بواسطة MoviePy...")
+    print("جاري إنشاء الفيديو تلقائياً...")
     
-    # تحميل الصوت لمعرفة المدة الزمانية
+    # تحميل الصوت
     audio_clip = AudioFileClip(audio_path)
-    duration = audio_clip.duration + 1.0  # إضافة ثانية إضافية
+    duration = audio_clip.duration + 0.5
     
-    # إنشاء خلفية ملونة قياس Shorts (1080x1920)
-    bg_color = random.choice([(20, 20, 40), (40, 10, 30), (10, 40, 30), (30, 30, 60)])
+    # لون الخلفية (أزرق/بنفسجي دافئ)
+    bg_color = (30, 30, 60)
+    
+    # إنشاء الفيديو بأبعاد هاتف (Shorts 1080x1920) وبسرعة رندر عالية جداً
     video = ColorClip(size=(1080, 1920), color=bg_color, duration=duration)
-    
-    # إدماج الصوت في الفيديو
     video = video.set_audio(audio_clip)
     
-    # حفظ الفيديو بصيغة mp4
-    video.write_videofile(output_video_path, fps=24, codec='libx264', audio_codec='aac')
-    print(f"🎉 تم إنشاء الفيديو بنجاح: {output_video_path}")
+    # استخدام ultrafast و fps=15 لرندر الفيديو في ثوانٍ معدودة
+    video.write_videofile(
+        output_video_path,
+        fps=15,
+        codec='libx264',
+        audio_codec='aac',
+        preset='ultrafast',
+        logger=None
+    )
+    
+    audio_clip.close()
+    video.close()
+    print(f"🎉 تم إنشاء ملف الفيديو بنجاح: {output_video_path}")
     return output_video_path
 
 def upload_to_youtube(video_path, title):
+    print("جاري البدء في عملية الرفع إلى يوتيوب...")
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
@@ -88,11 +99,11 @@ if __name__ == "__main__":
     joke_text = generate_joke()
     print(f"النكتة المحددة: {joke_text}")
     
-    # 1. تحويل النص لصوت
+    # 1. إنشاء الصوت
     audio_file = create_audio(joke_text)
     
-    # 2. إنشاء فيديو خلفية تلقائياً ودمج الصوت
+    # 2. إنشاء الفيديو بأسرع إعدادات
     final_video = create_auto_video(audio_file)
     
-    # 3. الرفع التلقائي ليوتيوب
+    # 3. الرفع الفوري ليوتيوب
     upload_to_youtube(final_video, joke_text)
