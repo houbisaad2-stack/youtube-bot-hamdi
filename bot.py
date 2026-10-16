@@ -1,8 +1,7 @@
 import os
 import random
 from gtts import gTTS
-# استدعاء مباشر من moviepy ليتوافق مع الإصدارات الجديدة والقديمة
-from moviepy import ColorClip, AudioFileClip
+from moviepy.editor import ColorClip, AudioFileClip
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -37,7 +36,7 @@ def create_auto_video(audio_path, output_video_path="final_video.mp4"):
     video = ColorClip(size=(1080, 1920), color=bg_color, duration=duration)
     
     # إدماج الصوت في الفيديو
-    video = video.with_audio(audio_clip) if hasattr(video, 'with_audio') else video.set_audio(audio_clip)
+    video = video.set_audio(audio_clip)
     
     # حفظ الفيديو بصيغة mp4
     video.write_videofile(output_video_path, fps=24, codec='libx264', audio_codec='aac')
