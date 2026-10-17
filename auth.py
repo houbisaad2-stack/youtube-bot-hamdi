@@ -16,8 +16,6 @@ def get_credentials():
       1. YOUTUBE_TOKEN_JSON environment variable (full authorized user info JSON)
       2. Individual env vars: YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN
       3. token.json file on disk
-
-    The function refreshes the token if expired and writes a token.json file for future runs.
     """
     env_token = os.getenv("YOUTUBE_TOKEN_JSON")
     if env_token:
@@ -25,13 +23,13 @@ def get_credentials():
             token_data = json.loads(env_token)
         except Exception as e:
             raise ValueError("YOUTUBE_TOKEN_JSON is present but not valid JSON") from e
-        # persist for local runs / refresh
         TOKEN_FILE.write_text(json.dumps(token_data))
         creds = Credentials.from_authorized_user_info(token_data, SCOPES)
     else:
         client_id = os.getenv("YOUTUBE_CLIENT_ID")
         client_secret = os.getenv("YOUTUBE_CLIENT_SECRET")
         refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN")
+
         if client_id and client_secret and refresh_token:
             creds = Credentials(
                 token=None,
@@ -49,7 +47,6 @@ def get_credentials():
                 "No YouTube credentials found. Set YOUTUBE_TOKEN_JSON, or YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN, or provide token.json"
             )
 
-    # Refresh if needed and persist the refreshed token
     try:
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -63,7 +60,6 @@ def get_credentials():
             }
             TOKEN_FILE.write_text(json.dumps(new_token, indent=2))
     except Exception:
-        # If refresh fails, surface the credentials object anyway so caller can handle errors.
         pass
 
     return creds
