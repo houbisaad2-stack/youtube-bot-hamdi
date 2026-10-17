@@ -1,8 +1,7 @@
 google-api-python-client
+google-auth
 google-auth-oauthlib
-google-auth-httplib2
-google-generativeai
-gTTS
 moviepy==1.0.3
-proglog
-imageio-ffmpeg
+Pillow
+gtts
+requests
