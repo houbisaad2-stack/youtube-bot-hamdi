@@ -28,7 +28,9 @@ jobs:
             google-auth-httplib2 \
             gTTS \
             "moviepy<2.0.0" \
-            pillow
+            pillow \
+            arabic-reshaper \
+            python-bidi
 
       - name: Run Python Bot
         env:
