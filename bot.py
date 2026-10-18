@@ -1,59 +1,38 @@
 import os
-import random
-import time
-import uuid
-import traceback
-from gtts import gTTS
-from moviepy.editor import ColorClip, AudioFileClip
-from googleapiclient.http import MediaFileUpload
-from googleapiclient.errors import HttpError
-from auth import get_authenticated_service
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 
-JOKES = [
-    "واحد تونسي مشى يخطب، قالو البنت ما تعرفش تطيب!",
-    "طفل تونسي كي يبدا يقرا، الام تحلف عليه والاب يهدد!",
-    "واحد تونسي مشى للبحر في الشتاء يلوج على الحوت المريض!",
-    "تونسي دخل للستاغ قالهم فاتورتي غالية برشا!",
-    "واحد يلوج على خدمة، قالو اش تعرف تعمل؟ قالو نعرف ننبر!"
-]
+def get_youtube_service():
+    # جلب البيانات من متغرات البيئة في غيتهاب
+    client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+    refresh_token = os.environ.get("YOUTUBE_TOKEN")
 
-def unique_filename(prefix, ext):
-    stamp = int(time.time())
-    short = uuid.uuid4().hex[:8]
-    return f"{prefix}_{stamp}_{short}.{ext}"
+    if not all([client_id, client_secret, refresh_token]):
+        raise ValueError("بعض المتغيرات (CLIENT_ID / CLIENT_SECRET / YOUTUBE_TOKEN) مفقودة في GitHub Secrets!")
 
-def create_audio(text, output_path=None):
-    if output_path is None:
-        output_path = unique_filename("joke", "mp3")
-    tts = gTTS(text=text, lang='ar', slow=False)
-    tts.save(output_path)
-    return output_path
+    # إنشاء الاعتمادات باستخدام YOUTUBE_TOKEN
+    creds = Credentials(
+        token=None,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=client_id,
+        client_secret=client_secret,
+        scopes=["https://www.googleapis.com/auth/youtube.upload"]
+    )
 
-def create_auto_video(audio_path, output_video_path=None):
-    if output_video_path is None:
-        output_video_path = unique_filename("final_video", "mp4")
-    audio_clip = AudioFileClip(audio_path)
-    duration = audio_clip.duration + 0.5
-    video = ColorClip(size=(1080, 1920), color=(30, 30, 60), duration=duration)
-    video = video.set_audio(audio_clip)
-    video.write_videofile(output_video_path, fps=15, codec='libx264', audio_codec='aac', preset='ultrafast', logger=None)
-    audio_clip.close()
-    video.close()
-    return output_video_path
+    # تجديد الـ Access Token تلقائياً
+    if not creds.valid:
+        creds.refresh(Request())
 
-def upload_to_youtube(video_path, title):
-    youtube = get_authenticated_service()
-    body = {
-        "snippet": {"title": title[:90], "description": "فيديو كوميدي تونسي #Shorts", "tags": ["تونس","ضحك"], "categoryId": "23"},
-        "status": {"privacyStatus": "public"}
-    }
-    media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype='video/mp4')
-    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
-    response = request.execute()
-    print(f"تم الرفع: https://youtu.be/{response.get('id')}")
+    # بناء خدمة YouTube API
+    return build("youtube", "v3", credentials=creds)
 
 if __name__ == "__main__":
-    joke = random.choice(JOKES)
-    audio = create_audio(joke)
-    video = create_auto_video(audio)
-    upload_to_youtube(video, joke)
+    try:
+        youtube = get_youtube_service()
+        print("✅ تم الاتصال بـ YouTube API وتحديث الرمز بنجاح!")
+        # هنا يوضع كود الإنشاء والرفع الخاص بك
+    except Exception as e:
+        print(f"❌ حدث خطأ أثناء الاتصال: {e}")
