@@ -1,108 +1,11 @@
-import os
-
-from dotenv import load_dotenv
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
-import yt_dlp
-
-load_dotenv()
-
-# ------------------------------------
-# 1. دالة جلب وتحميل الفيديو من الرابط
-# ------------------------------------
-def download_video(video_url, output_path='temp_video.mp4'):
-    ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'outtmpl': output_path,
-        'quiet': True
-    }
-
-    print("⏳ جاري تحميل الفيديو...")
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
-    print("✅ تم تحميل الفيديو بنجاح!")
-    return output_path
-
-
-# ------------------------------------
-# 2. دالة تسجيل الدخول ورفع الفيديو ليوتيوب
-# ------------------------------------
-def upload_to_youtube(video_file, title, description, tags=None, category_id="22"):
-    scopes = ['https://www.googleapis.com/auth/youtube.upload']
-
-    client_json = os.environ.get('YOUTUBE_CLIENT_JSON')
-    client_id = os.environ.get('YOUTUBE_CLIENT_ID')
-    client_secret = os.environ.get('YOUTUBE_CLIENT_SECRET')
-
-    if client_json:
-        client_data = json.loads(client_json)
-        config = client_data.get('installed') or client_data.get('web') or client_data
-        client_id = config.get('client_id', client_id)
-        client_secret = config.get('client_secret', client_secret)
-
-    if not (client_id and client_secret):
-        raise ValueError(
-            'Missing Google OAuth client config. Set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET '
-            'or YOUTUBE_CLIENT_JSON in your .env file.'
-        )
-
-    flow = InstalledAppFlow.from_client_config(
-        {
-            'installed': {
-                'client_id': client_id,
-                'client_secret': client_secret,
-                'redirect_uris': ['http://localhost'],
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://oauth2.googleapis.com/token',
-                'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
-            }
-        },
-        scopes
-    )
-    credentials = flow.run_local_server(port=0)
-
-    youtube = build('youtube', 'v3', credentials=credentials)
-
-    body = {
-        'snippet': {
-            'title': title,
-            'description': description,
-            'tags': tags or [],
-            'categoryId': category_id
-        },
-        'status': {
-            'privacyStatus': 'private'
-        }
-    }
-
-    media = MediaFileUpload(video_file, chunksize=-1, resumable=True)
-    request = youtube.videos().insert(
-        part=','.join(body.keys()),
-        body=body,
-        media_body=media
-    )
-
-    print("⏳ جاري رفع الفيديو إلى القناة...")
-    response = request.execute()
-    print(f"🎉 تم الرفع بنجاح! معرّف الفيديو: {response.get('id')}")
-
-    if os.path.exists(video_file):
-        os.remove(video_file)
-
-
-# ------------------------------------
-# 3. تشغيل العمليتين معاً
-# ------------------------------------
-if __name__ == '__main__':
-    target_url = "ضع_رابط_الفيديو_هنا"
-
-    downloaded_file = download_video(target_url)
-
-    upload_to_youtube(
-        video_file=downloaded_file,
-        title="عنوان الفيديو تلقائي",
-        description="تم رفع هذا الفيديو بواسطة البوت تلقائياً.",
-        tags=["bot", "youtube", "python"]
-    )
-
+google-api-python-client
+google-auth
+google-auth-oauthlib
+python-dotenv
+moviepy==1.0.3
+Pillow
+gtts
+requests
+numpy
+arabic-reshaper
+python-bidi

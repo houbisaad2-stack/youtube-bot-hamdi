@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 load_dotenv()
@@ -27,7 +27,7 @@ def get_credentials():
     else:
         client_id = os.getenv("YOUTUBE_CLIENT_ID")
         client_secret = os.getenv("YOUTUBE_CLIENT_SECRET")
-        refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN")
+        refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN") or os.getenv("YOUTUBE_TOKEN")
 
         if client_id and client_secret and refresh_token:
             creds = Credentials(
