@@ -1,29 +1,28 @@
-import os
 import json
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+
+load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 TOKEN_FILE = Path("token.json")
 
 
 def get_credentials():
-    """Return google.oauth2.credentials.Credentials.
-
-    Priority:
-      1. YOUTUBE_TOKEN_JSON environment variable (full authorized user info JSON)
-      2. Individual env vars: YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN
-      3. token.json file on disk
-    """
+    """Return YouTube OAuth credentials from environment variables or token file."""
     env_token = os.getenv("YOUTUBE_TOKEN_JSON")
+
     if env_token:
         try:
             token_data = json.loads(env_token)
         except Exception as e:
             raise ValueError("YOUTUBE_TOKEN_JSON is present but not valid JSON") from e
-        TOKEN_FILE.write_text(json.dumps(token_data))
+        TOKEN_FILE.write_text(json.dumps(token_data, indent=2), encoding="utf-8")
         creds = Credentials.from_authorized_user_info(token_data, SCOPES)
     else:
         client_id = os.getenv("YOUTUBE_CLIENT_ID")
@@ -40,11 +39,12 @@ def get_credentials():
                 scopes=SCOPES,
             )
         elif TOKEN_FILE.exists():
-            token_data = json.loads(TOKEN_FILE.read_text())
+            token_data = json.loads(TOKEN_FILE.read_text(encoding="utf-8"))
             creds = Credentials.from_authorized_user_info(token_data, SCOPES)
         else:
             raise FileNotFoundError(
-                "No YouTube credentials found. Set YOUTUBE_TOKEN_JSON, or YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN, or provide token.json"
+                "No YouTube credentials found. Set YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, "
+                "YOUTUBE_REFRESH_TOKEN or YOUTUBE_TOKEN_JSON in your .env file."
             )
 
     try:
@@ -58,7 +58,7 @@ def get_credentials():
                 "client_secret": creds.client_secret,
                 "scopes": list(creds.scopes) if creds.scopes else SCOPES,
             }
-            TOKEN_FILE.write_text(json.dumps(new_token, indent=2))
+            TOKEN_FILE.write_text(json.dumps(new_token, indent=2), encoding="utf-8")
     except Exception:
         pass
 
