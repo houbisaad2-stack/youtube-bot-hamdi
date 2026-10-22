@@ -6,14 +6,17 @@ import sys
 import arabic_reshaper
 import numpy as np
 from bidi.algorithm import get_display
-from google.auth.transport.requests import Request
+from dotenv import load_dotenv
 from google.auth.exceptions import RefreshError as GoogleRefreshError
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from gtts import gTTS
 from moviepy.editor import AudioFileClip, ImageClip
 from PIL import Image, ImageDraw, ImageFont
+
+load_dotenv()
 
 # ---------------------------------------------------------------- محتوى
 # أضف هنا ما تريد. يُختار عنصر واحد كل يوم بالتناوب.
@@ -52,7 +55,6 @@ def get_authenticated_service():
     client_json = os.environ.get("YOUTUBE_CLIENT_JSON")
     token_json = os.environ.get("YOUTUBE_TOKEN_JSON")
     token_value = os.environ.get("YOUTUBE_TOKEN")
-
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
 
@@ -71,7 +73,7 @@ def get_authenticated_service():
     if not all([client_id, client_secret, refresh_token]):
         raise ValueError(
             "Missing YouTube OAuth secrets. Check YOUTUBE_CLIENT_ID / "
-            "YOUTUBE_CLIENT_SECRET / YOUTUBE_TOKEN or set YOUTUBE_CLIENT_JSON / YOUTUBE_TOKEN_JSON in GitHub Secrets."
+            "YOUTUBE_CLIENT_SECRET / YOUTUBE_REFRESH_TOKEN or set YOUTUBE_CLIENT_JSON / YOUTUBE_TOKEN_JSON in your .env file."
         )
 
     creds = Credentials(
@@ -86,15 +88,13 @@ def get_authenticated_service():
     try:
         creds.refresh(Request())
     except GoogleRefreshError as e:
-        # طباعة رسالة مفصلة للمستخدم وتوجيه كيفية الإصلاح
         msg = (
             "Failed to refresh YouTube OAuth token: {}\n"
             "Possible causes:\n"
             "- refresh token is expired or revoked\n"
             "- refresh token was issued for a different client_id\n"
             "- client_id / client_secret do not match the token\n"
-            "Fix: re-generate a new token with offline access and update the GitHub Secrets.\n"
-            "See README or run a local token generator to get a fresh token."
+            "Fix: re-generate a new token with offline access and update your .env or GitHub Secrets."
         ).format(repr(e))
         raise RuntimeError(msg)
 
@@ -195,7 +195,6 @@ def main():
     quote = QUOTES[datetime.date.today().toordinal() % len(QUOTES)]
     print("النص:", quote["text"])
 
-    # تحقق من المصادقة أولاً لتجنّب بناء الفيديو إذا كانت المصادقة ستفشل
     print("التحقق من المصادقة ...")
     youtube = get_authenticated_service()
 

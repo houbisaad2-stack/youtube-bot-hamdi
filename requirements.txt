@@ -1,7 +1,11 @@
 google-api-python-client
 google-auth
 google-auth-oauthlib
+python-dotenv
 moviepy==1.0.3
 Pillow
 gtts
 requests
+numpy
+arabic-reshaper
+python-bidi
